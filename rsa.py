@@ -4,7 +4,7 @@ from Crypto.PublicKey import RSA
 class RandomOrg(object):
     """A wrapper for requesting sequences of random bytes of arbitrary lengths
        from random.org."""
-    def __init__(self, default_length=4096):
+    def __init__(self, default_length=4000):
         self.cache = b''
         self.cache_index = 0
         self.default_length = default_length
@@ -20,7 +20,7 @@ class RandomOrg(object):
         # new bytes needed
         print('Requesting bytes from random.org...')
         # format=f makes sure data downloaded is binary and not text
-        response = requests.get('https://www.random.org/cgi-bin/randbyte?nbytes={0}&format=f'.format(DEFAULT_LENGTH), timeout=10)
+        response = requests.get('https://www.random.org/cgi-bin/randbyte?nbytes={0}&format=f'.format(self.default_length), timeout=10)
         self.cache = response.content
 
         print('Received ', len(self.cache), ' bytes')
@@ -30,7 +30,6 @@ class RandomOrg(object):
         self.cache_index = length
 
         return result
-
 
 generator = RandomOrg()
 
