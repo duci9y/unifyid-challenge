@@ -1,39 +1,40 @@
 import requests
 from Crypto.PublicKey import RSA
 
-# messy globals
-random_bytes_cache = b'0'
-current_pos = 0
-DEFAULT_LENGTH = 4000
+class RandomOrg(object):
+    """A wrapper for requesting sequences of random bytes of arbitrary lengths
+       from random.org."""
+    def __init__(self, default_length=4096):
+        self.cache = b''
+        self.cache_index = 0
+        self.default_length = default_length
+    
+    def generate(self, length):
+        index = self.cache_index
+        if self.cache and index < len(self.cache) + length:
+            # there's unused bytes in the cache, return them
+            result = self.cache[index:index + length]
+            self.cache_index += length
+            return result
 
-# a lil function with the signature RSA.generate wants
-def web_random(length):
-    global current_pos
-    global random_bytes_cache
-    global DEFAULT_LENGTH
+        # new bytes needed
+        print('Requesting bytes from random.org...')
+        # format=f makes sure data downloaded is binary and not text
+        response = requests.get('https://www.random.org/cgi-bin/randbyte?nbytes={0}&format=f'.format(DEFAULT_LENGTH), timeout=10)
+        self.cache = response.content
 
-    # there's unused bytes in the cache, return them
-    if random_bytes_cache and current_pos < (len(random_bytes_cache) + length):
-        result = random_bytes_cache[current_pos:current_pos + length]
-        current_pos += length
+        print('Received ', len(self.cache), ' bytes')
+
+        result = self.cache[:length]
+
+        self.cache_index = length
+
         return result
 
-    # new bytes needed
-    print('Requesting bytes from random.org...')
-    # format=f makes sure data downloaded is binary and not text
-    response = requests.get('https://www.random.org/cgi-bin/randbyte?nbytes={0}&format=f'.format(DEFAULT_LENGTH), timeout=10)
 
-    random_bytes_cache = response.content
-    current_pos = 0
+generator = RandomOrg()
 
-    print('Received ', len(random_bytes_cache), ' bytes')
-
-    result = random_bytes_cache[current_pos:current_pos + length]
-    current_pos += length
-    return result
-
-
-keypair = RSA.generate(1024, web_random)
+keypair = RSA.generate(1024, generator.generate)
 
 print('Generated RSA keypair.')
 
